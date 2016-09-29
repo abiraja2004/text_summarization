@@ -6,7 +6,6 @@ res <- searchplos(
   fl = plosfields$field,
   fq = list('doc_type:full', '-article_type:correction','-article_type:viewpoints')
 )
-res$data %<>% filter(!is.na(abstract) & abstract != "")
 saveRDS(res$data %<>% filter(!is.na(abstract) & abstract != ""), "Data/no_spec_topic_articles")
 rm(res)
 gc()
