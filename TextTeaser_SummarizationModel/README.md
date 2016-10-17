@@ -1,11 +1,11 @@
 TextTeaser 
 
-by company DataTeaser http://www.datateaser.com/ https://github.com/DataTeaser/textteaser
+by company DataTeaser http://www.datateaser.com/ 
 =============
 
 TextTeaser is an open source automatic summarization algorithm that uses simple NLP and ML techniques.
 
-The original Scala TextTeaser can be accessed [here](https://github.com/MojoJolo/textteaser).
+The original Scala TextTeaser can be accessed [here](https://github.com/MojoJolo/textteaser). and [here] (https://github.com/DataTeaser/textteaser)
 
 ### Installation
 
