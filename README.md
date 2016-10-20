@@ -1,4 +1,4 @@
-### Python topic modeling using bigartm library
+# Python topic modeling using bigartm library
 
 ## Общее описание
 
