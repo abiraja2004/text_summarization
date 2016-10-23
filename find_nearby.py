@@ -13,21 +13,22 @@ import sys
 class Doc_search():
     def __init__(self, store_path, num_of_topics=50):
         self.store_path = store_path
-        self.dictionary = artm.Dictionary().load_text(dictionary_path=store_path+'big_dictionary')
-        self.model = artm.ARTM(num_topics=num_of_topics, dictionary=self.dictionary, cache_theta=True,
-                               theta_columns_naming='title',
-                               class_ids={'@abstract': 2, '@title': 3, '@body': 1, '@authors': 2, 'journal_key': 1})
+        self.dictionary = artm.Dictionary().load_text(dictionary_path=store_path+'full_dictionary')
+        self.model = artm.ARTM(num_topics=num_of_topics, dictionary=self.dictionary, cache_theta = True,
+                               theta_columns_naming='title', class_ids={'@abstract': 2, '@title': 5, '@body': 1,
+                                                                        '@authors': 2, 'journal_key': 1})
+        self.model.load(filename=store_path + 'saved_p_wt', model_name='p_wt')
+        self.model.load(filename=store_path + 'saved_n_wt', model_name='n_wt')
         self.model.regularizers.add(artm.SmoothSparsePhiRegularizer(name='SparsePhi',
-                                                                    class_ids=['@abstract', '@title', '@body',
-                                                                               '@authors', '@journal_key']))
+                                                               class_ids=['@abstract', '@title', '@body', '@authors',
+                                                                          '@journal_key']))
+
         self.model.regularizers.add(artm.SmoothSparseThetaRegularizer(name='SparseTheta', tau=-3))
         self.model.regularizers.add(artm.DecorrelatorPhiRegularizer(name='decorrelator_phi', tau=1,
-                                                                    class_ids=['@abstract', '@title', '@body',
-                                                                               '@authors', '@journal_key']))
+                                                               class_ids=['@abstract', '@title', '@body', '@authors',
+                                                                          '@journal_key']))
         self.model.regularizers.add(artm.ImproveCoherencePhiRegularizer(name='CoherencePhi', tau=1))
-        self.model.load(filename=store_path+'saved_p_wt', model_name='p_wt')
-        self.model.load(filename=store_path+'saved_n_wt', model_name='n_wt')
-        self.theta = pandas.read_csv(store_path+'theta.csv')
+        self.theta = pandas.read_pickle(store_path+'theta.pickle')
         self.col_names = self.theta.columns.values
         with open(store_path+'raw_titles.txt') as f:
             self.titles = f.read().splitlines()
@@ -41,10 +42,11 @@ class Doc_search():
     def find_nearby(self, query, doc_file, top_size=5, show_titles=True, distance_type='kl'):
         dists = []
         if distance_type == 'kl':
-            for col_num in self.col_names[1:]:
+            for col_num in self.col_names:
                 dists.append(stats.entropy(pk=self.theta_test[query], qk=self.theta[col_num], base=None))
             top_kl = [(self.col_names[i[0]], i[1]) for i in
                       sorted(list(enumerate(dists)), key=lambda x: x[1])[:top_size]]
+            print top_kl
             if show_titles: self.show_titles(query, doc_file, top_kl, 'kl divergence')
             return top_kl
         elif distance_type == 'cos':
