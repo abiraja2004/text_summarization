@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from __future__ import division, print_function, unicode_literals
 
-from sumy.parsers.html import HtmlParser
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer as Summarizer
@@ -11,7 +10,10 @@ from sumy.summarizers.lex_rank import LexRankSummarizer as LRS
 from sumy.nlp.stemmers import Stemmer
 from sumy.utils import get_stop_words
 import sumy.evaluation.rouge as Rogue
-import sumy.evaluation.coselection as Coselection
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.set_style("white")
+import os
 
 
 LANGUAGE = "english"
@@ -19,73 +21,60 @@ SENTENCES_COUNT = 5
 
 
 if __name__ == "__main__":
-    #nltk.download()
-    #url = "http://www.zsstritezuct.estranky.cz/clanky/predmety/cteni/jak-naucit-dite-spravne-cist.html"
-    #parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
-    # or for plain text files
-    parser = PlaintextParser.from_file("g.txt", Tokenizer(LANGUAGE))
+
     stemmer = Stemmer(LANGUAGE)
 
-    #summarizer = Summarizer(stemmer)
-    print("Text rank:")
-    summarizer = TextRankSummarizer(stemmer)
-    summarizer.stop_words = get_stop_words(LANGUAGE)
+    tr = [0.0, 0.0, 0.0]
+    lsa = [0.0, 0.0, 0.0]
+    kl = [0.0, 0.0, 0.0]
+    lrs = [0.0, 0.0, 0.0]
 
-    summary = []
-    for sentence in summarizer(parser.document, SENTENCES_COUNT):
-        summary.append(sentence)
-        print(sentence)
+    metrics = [tr, lsa, kl, lrs]
 
-    print("ROGUE 1: " + str(Rogue.rouge_1(summary, parser.document.sentences)))
-    print("ROGUE 2: " + str(Rogue.rouge_2(summary, parser.document.sentences)))
-    print("ROGUE 3: " + str(Rogue.rouge_n(summary, parser.document.sentences,3)))
-    #print("Recall: " + str(Coselection.recall(summary, parser.document.sentences)))
-    #print("Precision: " + str(Coselection.precision(summary, parser.document.sentences)))
-    #print("F-score: " + str(Coselection.f_score(summary, parser.document.sentences, 0.5)))
+    path = "../text_summarization/output/articles"
+    for file in os.listdir(path):
+        if file.endswith(".txt"):
+            print(file)
+            parser = PlaintextParser.from_file(path + file, Tokenizer(LANGUAGE))
 
+            tr_summarizer = TextRankSummarizer(stemmer)
+            lsa_summarizer = Summarizer(stemmer)
+            kl_summarizer = KL(stemmer)
+            lrs_summarizer = LRS(stemmer)
+            summarizers = [tr_summarizer, lsa_summarizer, kl_summarizer, lrs_summarizer]
 
-    print("=============================================================")
-    print("LSA:")
-    summarizer = Summarizer(stemmer)
-    summarizer.stop_words = get_stop_words(LANGUAGE)
+            for summarizer in summarizers:
+                summarizer.stop_words = get_stop_words(LANGUAGE)
 
-    summary = []
-    for sentence in summarizer(parser.document, SENTENCES_COUNT):
-        summary.append(sentence)
-        print(sentence)
+            tr_summary = []
+            lsa_summary = []
+            kl_summary = []
+            lrs_summary = []
+            summaries = [tr_summary, lsa_summary, kl_summary, lrs_summary]
+            for i in range(0, len(summarizers), 1):
+                for sentence in summarizers[i](parser.document, SENTENCES_COUNT):
+                    summaries[i].append(sentence)
+                    print(sentence)
 
-    print("ROGUE 1: " + str(Rogue.rouge_1(summary, parser.document.sentences)))
-    print("ROGUE 2: " + str(Rogue.rouge_2(summary, parser.document.sentences)))
-    print("ROGUE 3: " + str(Rogue.rouge_n(summary, parser.document.sentences,3)))
-    #print("Recall: " + str(Coselection.recall(summary, parser.document.sentences)))
-    #print("Precision: " + str(Coselection.precision(summary, parser.document.sentences)))
-    #print("F-score: " + str(Coselection.f_score(summary, parser.document.sentences, 0.5)))
+                metrics[i][0] += Rogue.rouge_1(summaries[i], parser.document.sentences)
+                metrics[i][1] += Rogue.rouge_2(summaries[i], parser.document.sentences)
+                metrics[i][2] += Rogue.rouge_n(summaries[i], parser.document.sentences, 3)
 
-    print("=============================================================")
-    print("KL:")
-    summarizer = KL(stemmer)
-    summarizer.stop_words = get_stop_words(LANGUAGE)
+    labels = ['TextRank', 'LSA', 'KL', 'LRS']
 
-    summary = []
-    for sentence in summarizer(parser.document, SENTENCES_COUNT):
-        summary.append(sentence)
-        print(sentence)
-
-    print("ROGUE 1: " + str(Rogue.rouge_1(summary, parser.document.sentences)))
-    print("ROGUE 2: " + str(Rogue.rouge_2(summary, parser.document.sentences)))
-    print("ROGUE 3: " + str(Rogue.rouge_n(summary, parser.document.sentences,3)))
-
-    print("=============================================================")
-    print("LexRank Summary:")
-    summarizer = LRS(stemmer)
-    summarizer.stop_words = get_stop_words(LANGUAGE)
-
-    summary = []
-    for sentence in summarizer(parser.document, SENTENCES_COUNT):
-        summary.append(sentence)
-        print(sentence)
-
-    print("ROGUE 1: " + str(Rogue.rouge_1(summary, parser.document.sentences)))
-    print("ROGUE 2: " + str(Rogue.rouge_2(summary, parser.document.sentences)))
-    print("ROGUE 3: " + str(Rogue.rouge_n(summary, parser.document.sentences,3)))
-
+    plt.figure(1, figsize=(10, 10))
+    plt.tick_params(
+        axis='x',  # changes apply to the x-axis
+        which='both',  # both major and minor ticks are affected
+        bottom='off',  # ticks along the bottom edge are off
+        top='off',  # ticks along the top edge are off
+        labelbottom='off')  # labels along the bottom edge are off
+    plt.grid(True)
+    for i,metric in enumerate(metrics):
+        plt.plot([1,2,3], metric, linewidth=1, label=labels[i])
+    plt.axis('tight')
+    plt.title('Text summarization quality')
+    plt.xlabel('ROUGE')
+    plt.ylabel('Score')
+    plt.legend()
+    plt.savefig('text_summarization_quality.pdf')
